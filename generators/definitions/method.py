@@ -64,9 +64,12 @@ class Method:
 
         template = ("<%s>" % ", ".join([t[1] for t in template_types])) if template_types else ""
         constant_method = ", py::const_" if self.cppmethod["const"] else ""
-        disamb = "py::overload_cast<{type_}> (&{cls}{name}{template}{const})"
+        # disamb = "py::overload_cast<{type_}> (&{cls}{name}{template}{const})"
+        disamb = "({ret} ({cast}*)({type_})) (&{cls}{name}{template}{const})"
         disamb = disamb.format(type_=type_,
                                cls=(prefix + "::") if prefix else "",
+                               cast=(prefix + "::") if prefix and prefix != "pcl" else "",
+                               ret=self.cppmethod["returns"],
                                name=self.cppmethod["name"],
                                template=template,
                                const=constant_method)
