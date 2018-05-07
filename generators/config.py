@@ -4,7 +4,7 @@ from os.path import join
 INDENT = " " * 4
 BASE_SUB_MODULE_NAME = "sub_module"
 
-PCL_BASE = join(os.environ["PCL_ROOT"], "include\pcl-1.8\pcl")
+PCL_BASE = os.environ["PCL_GIT_ROOT"]
 PATH_SRC = join("..", "pclpy", "src")
 PATH_MAIN_CPP = join(PATH_SRC, "pclpy.cpp")
 PATH_MODULES = join(PATH_SRC, "generated_modules")
@@ -302,6 +302,7 @@ EXPLICIT_INCLUDES = {
 
 HEADERS_TO_SKIP = [
     # ("module", "header")
+
     ("io", "pxc_grabber.h"),  # deprecated
     ("", "sse.h"),  # don't need that
     ("", "point_representation.h"),  # I could be wrong, but this seems covered in python with the buffer protocol..
@@ -309,19 +310,6 @@ HEADERS_TO_SKIP = [
     ("ml", "multi_channel_2d_comparison_feature_handler.h"),  # can't find class FeatureHandlerCodeGenerator ??
     ("", "pcl_tests.h"),
     ("", "for_each_type.h"),
-
-    # todo: everything in pcl/ml/dt/ is actually at pcl/ml/
-    ("ml", "decision_tree_evaluator.h"),
-    ("ml", "decision_forest.h"),
-    ("ml", "decision_forest_evaluator.h"),
-    ("ml", "decision_forest_trainer.h"),
-    ("ml", "decision_tree.h"),
-    ("ml", "decision_tree_data_provider.h"),
-    ("ml", "decision_tree_evaluator.h"),
-    ("ml", "decision_tree_trainer.h"),
-    ("ml", "fern.h"),
-    ("ml", "fern_evaluator.h"),
-    ("ml", "fern_trainer.h"),
 
     ("io", "openni.h"),
     ("io", "openni2_grabber.h"),

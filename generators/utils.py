@@ -57,18 +57,18 @@ def sort_headers_by_dependencies(headers):
             lines = open(path).readlines()
         except UnicodeDecodeError:
             lines = open(path, encoding="utf8").readlines()
-        headers = []
+        includes = []
         for line in lines:
             stripped = line.strip()
             if stripped.startswith("#include"):
                 include_string = stripped[10:-1]
-                headers.append(include_string)
-                # fix for relative_imports
-                headers.append(make_header_include_name(module, include_string, path_only=True))
-        return headers
+                includes.append(include_string)
+                # also include relative imports
+                includes.append(make_header_include_name(module, include_string, path_only=True))
+        return includes
 
-    make_header_path = lambda module, header, path: join(PCL_BASE, path) if path else join(PCL_BASE, module, header)
-    headers_dependencies = {header: get_include_lines(make_header_path(*header), header[0]) for header in headers}
+    headers_dependencies = {(module, header, path): get_include_lines(join(PCL_BASE, path), module)
+                            for module, header, path in headers}
 
     headers_include_names = OrderedDict()  # output is sorted in the same way always
     for h in headers:

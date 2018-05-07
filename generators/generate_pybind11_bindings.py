@@ -241,7 +241,8 @@ def check_if_needs_overloading(main_classes):
 def get_headers(modules=None):
     def listmod(module):
         found_modules = []
-        for base, folders, files in os.walk(join(PCL_BASE, module)):
+        include_path = join(module, "include", "pcl", module)
+        for base, folders, files in os.walk(join(PCL_BASE, include_path)):
             if any(base.endswith(m) for m in SUBMODULES_TO_SKIP):
                 continue
             relative_base = os.path.abspath(base).replace(PCL_BASE, "")[1:]
@@ -255,16 +256,20 @@ def get_headers(modules=None):
 
     headers_to_generate = [(module, header_name, path) for module in modules
                            for header_name, path in listmod(module)]
-    base_headers = [("", f, f) for f in os.listdir(PCL_BASE) if f.endswith(".h")]
+    common_include_relative = join("common", "include", "pcl")
+    common_include_path = join(PCL_BASE, common_include_relative)
+    base_headers = [("", f, join(common_include_relative, f))
+                    for f in os.listdir(common_include_path)
+                    if f.endswith(".h")]
     headers_to_generate += base_headers
 
-    headers_to_generate_temp = []
+    headers_to_generate_filtered = []
     for module, header_name, path in headers_to_generate:
         if (module, header_name) in HEADERS_TO_SKIP:
             continue
-        headers_to_generate_temp.append(tuple([module, header_name, path]))
+        headers_to_generate_filtered.append((module, header_name, path))
 
-    return headers_to_generate_temp
+    return headers_to_generate_filtered
 
 
 def get_pure_virtual_methods(class_: CppHeaderParser.CppClass):
@@ -387,7 +392,7 @@ def generate(headers_to_generate, not_every_point_type=False) -> OrderedDict:
     main_classes, module_functions, module_variables, module_enums = {}, {}, {}, {}
 
     for module, header_name, path in headers_to_generate[:]:
-        header_full_path = join(PCL_BASE, path) if path else join(PCL_BASE, module, header_name)
+        header_full_path = join(PCL_BASE, path)
         header = read_header(header_full_path)
         main_classes[(module, header_name)] = get_main_classes(header, module, header_name)
         module_functions[(module, header_name)] = get_functions(header, module)

@@ -12,9 +12,9 @@ def ensure_required(headers):
 
 def main():
     # headers = [
-    #     ("filters", "filter.h", ""),
-    #     ("filters", "filter_indices.h", ""),
-    #     ("", "pcl_base.h", ""),
+    #     ("filters", "filter.h", "relative_path"),
+    #     ("filters", "filter_indices.h", "relative_path"),
+    #     ("", "pcl_base.h", "relative_path"),
     # ]
     modules = ["registration"]
     headers = get_headers(modules)

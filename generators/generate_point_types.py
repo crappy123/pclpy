@@ -55,7 +55,7 @@ def generate_class_point_type(module_name, point_name, fields, indent=INDENT):
 
 
 def generate_point_types():
-    header_path = join(PCL_BASE, "point_types.h")
+    header_path = join(PCL_BASE, "common", "include", "pcl", "point_types.h")
     point_types = get_point_types(header_path)
     module_name = "m_pts"
     lines = [config.common_includes]
