@@ -190,7 +190,7 @@ class BuildExt(build_ext):
         'msvc': ['/EHsc', "/openmp"],
         'unix': [],
     }
-    if MSVC_NO_CODE_LINK:
+    if ON_WINDOWS and MSVC_NO_CODE_LINK:
         c_opts['msvc'].append("/bigobj")
     if sys.platform == 'darwin':
         c_opts['unix'] += ['-stdlib=libc++', '-mmacosx-version-min=10.7']
