@@ -6,8 +6,10 @@
 import glob
 import io
 import os
+import subprocess
 from os.path import join
 import sys
+import platform
 from shutil import rmtree
 from time import time
 from collections import defaultdict
@@ -18,8 +20,6 @@ import setuptools
 from setuptools.command.build_ext import build_ext
 from setuptools import find_packages, setup, Command, Extension
 from distutils.errors import CompileError, DistutilsExecError
-import distutils._msvccompiler
-from distutils._msvccompiler import MSVCCompiler
 
 # Package meta-data.
 NAME = 'pclpy'
@@ -43,9 +43,16 @@ REQUIRED = [
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
-ON_WINDOWS = sys.platform == "win32"
+DEBUG = False
+if "--debug" in sys.argv:
+    sys.argv.remove("--debug")
+    DEBUG = True
+
+ON_WINDOWS = platform.system() == "Windows"
 
 if ON_WINDOWS:
+    import distutils._msvccompiler
+
     # monkey-patch msvc to build with x64 compiler
     # this is necessary because ram exceeds 4Gb while compiling for some modules
     old = distutils._msvccompiler._get_vc_env
@@ -57,22 +64,17 @@ if ON_WINDOWS:
     # https://stackoverflow.com/questions/43847542/rc-exe-no-longer-found-in-vs-2015-command-prompt
     os.environ["PATH"] += r";C:\Program Files (x86)\Windows Kits\10\bin\10.0.16299.0\x64"
 
-# For MSVC, this flag enables multiprocess compilation
-MSVC_MP_BUILD = False
-N_WORKERS = 4
-if "--msvc-mp-build" in sys.argv:
-    sys.argv.remove("--msvc-mp-build")
-    MSVC_MP_BUILD = True
+    # For MSVC, this flag enables multiprocess compilation
+    MSVC_MP_BUILD = False
+    N_WORKERS = 4
+    if "--msvc-mp-build" in sys.argv:
+        sys.argv.remove("--msvc-mp-build")
+        MSVC_MP_BUILD = True
 
-DEBUG = False
-if "--debug" in sys.argv:
-    sys.argv.remove("--debug")
-    DEBUG = True
-
-USE_CLCACHE = False
-if "--use-clcache" in sys.argv:
-    sys.argv.remove("--use-clcache")
-    USE_CLCACHE = True
+    USE_CLCACHE = False
+    if "--use-clcache" in sys.argv:
+        sys.argv.remove("--use-clcache")
+        USE_CLCACHE = True
 
     # ensure clcache exists
     for path in os.environ["PATH"].split(os.pathsep):
@@ -81,12 +83,12 @@ if "--use-clcache" in sys.argv:
     else:
         raise FileNotFoundError("You specified --use-clcache but clcache.exe can't be found.")
 
-# For MSVC, this flag skips code generation at linking
-# Do not set for release builds because some optimizations are skipped
-MSVC_NO_CODE_LINK = False
-if "--msvc-no-code-link" in sys.argv:
-    sys.argv.remove("--msvc-no-code-link")
-    MSVC_NO_CODE_LINK = True
+    # For MSVC, this flag skips code generation at linking
+    # Do not set for release builds because some optimizations are skipped
+    MSVC_NO_CODE_LINK = False
+    if "--msvc-no-code-link" in sys.argv:
+        sys.argv.remove("--msvc-no-code-link")
+        MSVC_NO_CODE_LINK = True
 
 # Import the README and use it as the long-description.
 # Note: this will only work if 'README.rst' is present in your MANIFEST.in file!
@@ -324,6 +326,8 @@ if ON_WINDOWS:
 
 
     # monkey-patch msvc compiler for faster windows builds
+    from distutils._msvccompiler import MSVCCompiler
+
     MSVCCompiler.compile = compile
     MSVCCompiler.compile_single = compile_single
 
@@ -379,6 +383,83 @@ if ON_WINDOWS:
 
     ext_args['include_dirs'].append(get_pybind_include())
     ext_args['include_dirs'].append(get_pybind_include(user=True))
+
+else:
+
+    if platform.system() == "Darwin":
+        os.environ['ARCHFLAGS'] = ''
+
+    PCL_SUPPORTED = ["-1.8"]
+
+    for pcl_version in PCL_SUPPORTED:
+        if subprocess.call(['pkg-config', 'pcl_common%s' % pcl_version]) == 0:
+            break
+    else:
+        print("%s: error: cannot find PCL, tried" %
+              sys.argv[0], file=sys.stderr)
+        for version in PCL_SUPPORTED:
+            print('    pkg-config pcl_common%s' % version, file=sys.stderr)
+        sys.exit(1)
+
+    # Find build/link options for PCL using pkg-config.
+    pcl_libs = ['2d', 'common', 'geometry', 'features', 'filters', 'io', 'kdtree', 'keypoints', 'octree',
+                'recognition', 'sample_consensus', 'search', 'segmentation', 'stereo', 'surface',
+                'tracking', 'visualization']
+    pcl_libs = ["pcl_%s%s" % (lib, pcl_version) for lib in pcl_libs]
+
+    ext_args = defaultdict(list)
+    ext_args['include_dirs'].append(numpy.get_include())
+
+    def pkgconfig(flag):
+        return subprocess.check_output(['pkg-config', flag] + pcl_libs).decode().split()
+
+    for flag in pkgconfig('--cflags-only-I'):
+        ext_args['include_dirs'].append(flag[2:])
+
+    # openni
+    # ext_args['include_dirs'].append('/usr/include/ni')
+
+    for flag in pkgconfig('--cflags-only-other'):
+        if flag.startswith('-D'):
+            macro, value = flag[2:].split('=', 1)
+            ext_args['define_macros'].append((macro, value))
+        else:
+            ext_args['extra_compile_args'].append(flag)
+
+    # clang?
+    # https://github.com/strawlab/python-pcl/issues/129
+    # gcc base libc++, clang base libstdc++
+    # ext_args['extra_compile_args'].append("-stdlib=libstdc++")
+    # ext_args['extra_compile_args'].append("-stdlib=libc++")
+    if platform.system() == "Darwin":
+        # or gcc5?
+        # ext_args['extra_compile_args'].append("-stdlib=libstdc++")
+        # ext_args['extra_compile_args'].append("-mmacosx-version-min=10.6")
+        # ext_args['extra_compile_args'].append('-openmp')
+        pass
+    else:
+        # gcc4?
+        # ext_args['extra_compile_args'].append("-stdlib=libc++")
+        pass
+
+    for flag in pkgconfig('--libs-only-l'):
+        if flag == "-lflann_cpp-gd":
+            print("skipping -lflann_cpp-gd (see https://github.com/strawlab/python-pcl/issues/29")
+            continue
+        ext_args['libraries'].append(flag[2:])
+
+    for flag in pkgconfig('--libs-only-L'):
+        ext_args['library_dirs'].append(flag[2:])
+
+    for flag in pkgconfig('--libs-only-other'):
+        ext_args['extra_link_args'].append(flag)
+
+    # grabber?
+    # -lboost_system
+    ext_args['extra_link_args'].append('-lboost_system')
+    # ext_args['extra_link_args'].append('-lboost_bind')
+
+    ext_args['define_macros'].append(("EIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET", "1"))
 
 src_path = join("pclpy", "src")
 

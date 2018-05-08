@@ -23,7 +23,7 @@ matrix:
       - PCL_VERSION="1.8"
       - MATRIX_EVAL="CC=gcc-4.9 && CXX=g++-4.9"
 
-before-install:
+before_install:
   - sudo apt-get install -qq libpcl-dev
 
 install:
