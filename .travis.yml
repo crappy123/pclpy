@@ -24,7 +24,7 @@ matrix:
       - MATRIX_EVAL="CC=gcc-4.9 && CXX=g++-4.9"
 
 before_install:
-  - sudo apt-get install -qq libpcl-dev
+  - sudo apt-get install --allow-unauthenticated -qq libpcl-dev
 
 install:
 #  - if [[ ( "$TRAVIS_OS_NAME" == "linux" ) ]]; then
@@ -54,6 +54,6 @@ install:
 #      travis_wait 50 ninja -j4;
 #      sudo ninja -t targets install;
 #      cd ../..;
-#   fi
+#    fi
   - python setup.py build_ext -i
   - python setup.py install
