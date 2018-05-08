@@ -1,3 +1,4 @@
+dist: xenial
 sudo: enabled
 
 
@@ -21,6 +22,9 @@ matrix:
       env:
       - PCL_VERSION="1.8"
       - MATRIX_EVAL="CC=gcc-4.9 && CXX=g++-4.9"
+
+before-install:
+  - sudo apt-get install -qq libpcl-dev
 
 install:
 #  - if [[ ( "$TRAVIS_OS_NAME" == "linux" ) ]]; then
@@ -51,6 +55,5 @@ install:
 #      sudo ninja -t targets install;
 #      cd ../..;
 #    fi
-  - sudo apt-get install -y libpcl-dev
   - python setup.py build_ext -i
   - python setup.py install
