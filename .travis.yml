@@ -54,6 +54,6 @@ install:
 #      travis_wait 50 ninja -j4;
 #      sudo ninja -t targets install;
 #      cd ../..;
-#    fi
+#   fi
   - python setup.py build_ext -i
   - python setup.py install
