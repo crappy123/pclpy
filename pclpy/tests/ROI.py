@@ -6,7 +6,7 @@ import pclpy.view.vtk
 import numpy as np
 
 
-def test_open_in_new_window():
+def roi_window():
     pc = pclpy.io.read("test.las", "PointXYZRGBA")
     viewer = pcl.visualization.PCLVisualizer("viewer", True)
     viewer.addPointCloud(pc)
@@ -32,7 +32,7 @@ def test_open_in_new_window():
     while not all(v.wasStopped() for v in viewers):
         for v in viewers:
             if not v.wasStopped():
-                v.spinOnce(50)
+                v.spinOnce(70)
 
 
-test_open_in_new_window()
+roi_window()
